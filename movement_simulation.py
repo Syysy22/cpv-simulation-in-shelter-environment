@@ -329,7 +329,9 @@ def to_regular_dict(d):
 
 occupancy_regular = to_regular_dict(occupancy)
 
-with open("full_simulation.pkl", "wb") as f:
+base_dir = os.path.dirname(__file__)
+out_path = os.path.join(base_dir, "data", "full_simulation.pkl")
+with open(out_path, "wb") as f:
     pickle.dump({
         "occupancy": occupancy_regular,
         "staff_dogs": staff_dogs,
