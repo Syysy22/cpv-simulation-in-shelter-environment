@@ -3,9 +3,20 @@ from collections import defaultdict
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
-# Load saved simulation data
-with open("/Users/sunyuan/Desktop/full_simulation.pkl", "rb") as f:
-    saved = pickle.load(f)
+# Build the path to the simulation results inside the repo
+base_dir = os.path.dirname(__file__)
+data_path = os.path.join(base_dir, "data", "full_simulation.pkl")
+
+# Load saved simulation data (with a clear error if missing)
+if os.path.exists(data_path):
+    with open(data_path, "rb") as f:
+        saved = pickle.load(f)
+    print(f"Loaded simulation data from {data_path}")
+else:
+    raise FileNotFoundError(
+        f"full_simulation.pkl not found in {data_path}. "
+        "Please generate it first by running movement_simulation.py."
+    )
 
 G = saved["graph"]
 coord_to_index = saved["coord_to_index"]
