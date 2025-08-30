@@ -1,8 +1,8 @@
 import os, sys, time, pickle, random, matplotlib.pyplot as plt, networkx as nx, geopandas as gpd
 from collections import defaultdict
-
-os.chdir("/Users/sunyuan/Desktop")
-gdf = gpd.read_file("paths.shp")
+base_dir = os.path.dirname(__file__)
+data_path = os.path.join(base_dir, "data", "paths.shp")
+gdf = gpd.read_file(data_path)
 
 nodes = set()
 for line in gdf.geometry:
@@ -321,51 +321,6 @@ for day in range(90):
 end_time = time.time()
 elapsed_time = end_time - start_time
 print(f"Simulation completed in {elapsed_time:.2f} seconds.")
-
-
-# You can combine all paddock/training nodes if needed
-all_shared_nodes = (
-    main_paddock + seren_paddock + new_paddock +
-    main_training + seren_cwtch_training + new_training
-)
-
-collisions = defaultdict(list)  # time → list of (node, [dog1, dog2, ...])
-
-for t in sorted(occupancy):
-    for node, entities in occupancy[t].items():
-        if node in all_shared_nodes:
-            dogs_here = [obj_id for obj_type, obj_id in entities if obj_type == "dog"]
-            if len(dogs_here) > 1:
-                collisions[t].append((node, dogs_here))
-
-# Print results
-if collisions:
-    print("\n Dog collisions in shared paddocks or training rooms:")
-    for t, entries in collisions.items():
-        for node, dogs in entries:
-            print(f"Time {t}: Dogs {dogs} at node {node}")
-else:
-    print(" No dog collisions in shared paddocks or training rooms.")
-
-
-
-
-# Pick one dog to inspect
-target_dog = 81  # the last moved dog, or replace with a specific dog ID
-
-print(f"\n🔍 Path of dog {target_dog} over time:")
-dog_path = []
-
-for t in sorted(occupancy):
-    for node, entities in occupancy[t].items():
-        if ("dog", target_dog) in entities:
-            dog_path.append((t, node))
-
-# Print it
-for t, node in dog_path:
-    print(f"Time {t}: Node {node}")
-
-
 
 def to_regular_dict(d):
     if isinstance(d, defaultdict):
