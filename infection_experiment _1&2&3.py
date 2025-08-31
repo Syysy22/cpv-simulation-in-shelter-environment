@@ -4,16 +4,18 @@ from collections import defaultdict
 
 # ---------- Paths ----------
 BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "data")) 
 os.makedirs(DATA_DIR, exist_ok=True)
 
 FULL_STATE_PATH   = os.path.join(DATA_DIR, "full_simulation.pkl")  # baseline snapshot
 MASTER_SAVE_PATH  = os.path.join(DATA_DIR, "cpv_env_staff_combo.pkl")  # single output
 
-# ========= Regime-specific settings =========
-# High:         P_DIRECT=0.001,  P_ENV=0.0005, MASTER_SAVE_PATH="cpv_env_staff_combo_high.pkl"
-# Intermediate: P_DIRECT=0.0005, P_ENV=0.0003, MASTER_SAVE_PATH="cpv_env_staff_combo_medium.pkl"
-# Low:          P_DIRECT=0.0003, P_ENV=0.0001, MASTER_SAVE_PATH="cpv_env_staff_combo_low.pkl"
+# Regime-specific settings (set manually before running):
+#   High:         P_DIRECT=0.001,  P_ENV=0.0005
+#   Intermediate: P_DIRECT=0.0005, P_ENV=0.0003
+#   Low:          P_DIRECT=0.0003, P_ENV=0.0001
+# Results from all runs are saved into a single file: cpv_env_staff_combo.pkl
+
 P_DIRECT = 0.0003        # set per regime
 P_ENV    = 0.0001        # set per regime
 
