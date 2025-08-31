@@ -39,7 +39,7 @@ STAFF_CLEAR_ROUNDS = 4                 # staff decontamination cadence (rounds)
 P_DIRECT = 0.0003
 P_ENV    = 0.0001
 # -------------------- vaccination parameters -------------------
-VACCINE_COVERAGES = [0.50, 0.75]       # scenarios to run
+VACCINE_COVERAGES = [0, 0.50, 0.75]       # scenarios to run
 VACCINE_EFFECTIVENESS = 0.85           # <— effectiveness (VE)
 PROTECTION_DELAY_DAYS = 3              # <— onset of protection after vaccination
 CAMPAIGN_PERIOD_DAYS = 30              # rolling campaign period
