@@ -129,18 +129,25 @@ x_days   = np.arange(common_max_day+1)
 x_rounds = np.arange(common_n_rounds)
 
 # ----------------------- plotting ----------------------------- #
-def plot_small_multiples(metric_key, ylabel, title, x_is_rounds=False, hline=None, hline_label=None, ylim_min=0):
+def plot_small_multiples(metric_key, ylabel, title, x_is_rounds=False,
+                         hline=None, hline_label=None, ylim=None, ylim_min=0):
     x = x_rounds if x_is_rounds else x_days
     L = common_n_rounds if x_is_rounds else (common_max_day+1)
 
-    regimes_order = ["High","Intermediate","Low"]
+    regimes_order = ["High", "Intermediate", "Low"]
     regimes_order = [r for r in regimes_order if r in labels_by_regime]
-    fig, axes = plt.subplots(1, len(regimes_order), figsize=(13, 4.2), sharex=True, sharey=True)
+    if not regimes_order:
+        raise ValueError("No regimes to plot.")
+
+    fig, axes = plt.subplots(1, len(regimes_order), figsize=(13, 4.2),
+                             sharex=True, sharey=True) 
+    axes = np.atleast_1d(axes) 
 
     global_max = 0.0
     for ax, rn in zip(axes, regimes_order):
         lbls = [l for l in labels_by_regime[rn] if get_vax_pct(store[l], l) in cov_pcts_to_plot]
         lbls.sort(key=lambda k: get_vax_pct(store[k], k))
+
         for l in lbls:
             pct = get_vax_pct(store[l], l)
             y = np.asarray(store[l][metric_key])[:L]
@@ -150,48 +157,52 @@ def plot_small_multiples(metric_key, ylabel, title, x_is_rounds=False, hline=Non
                 global_max = max(global_max, float(np.nanmax(y)))
 
         if hline is not None:
-            ax.axhline(hline, ls="--", color="grey", lw=1, label=(hline_label if rn == regimes_order[0] else None))
+            ax.axhline(hline, ls="--", color="grey", lw=1,
+                       label=(hline_label if rn == regimes_order[0] else None))
 
         ax.set_title(f"{rn} Transmission")
         ax.grid(True, alpha=0.3)
         ax.set_xlabel("Round" if x_is_rounds else "Day")
 
     axes[0].set_ylabel(ylabel)
-    ylim_top = max(np.ceil(global_max*1.05/5)*5, ylim_min+1)
-    for ax in axes:
-        ax.set_ylim(ylim_min, ylim_top)
 
-    # one legend
+    # apply y-limits
+    if ylim:
+        for ax in axes:
+            ax.set_ylim(*ylim)
+    else:
+        ylim_top = max(np.ceil(global_max*1.05/5)*5, ylim_min+1)
+        for ax in axes:
+            ax.set_ylim(ylim_min, ylim_top)
+
+    # legend
     handles, labels = [], []
     for p in cov_pcts_to_plot:
         lbl = "Baseline (0% Coverage)" if p == 0 else f"{p}% Coverage"
         h, = axes[0].plot([], [], color=COLOR_BY_COV.get(p), label=lbl)
-        handles.append(h)
-        labels.append(lbl)
+        handles.append(h); labels.append(lbl)
     if hline is not None:
         ref, = axes[0].plot([], [], ls="--", color="grey", label=hline_label or "")
-        handles.append(ref)
-        labels.append(hline_label or "")
+        handles.append(ref); labels.append(hline_label or "")
     fig.legend(handles, labels, loc="lower center", ncol=min(5, len(labels)), frameon=False)
 
-    fig.suptitle(title + f" (env={env_days_chosen}d, staff={STAFF_ROUNDS_TARGET}r)", fontsize=13, y=0.99)
+    fig.suptitle(title, fontsize=13, y=0.99)
     fig.tight_layout(rect=[0, 0.10, 1, 0.92])
     plt.show()
-
 # --------------------------- plots --------------------------- #
 plot_small_multiples(
     metric_key="avg_total_infected_per_day",
     ylabel="Number Of Infected Dogs",
     title="Number Of Infected Dogs Per Day",
     x_is_rounds=False,
-    hline=KENNEL_CAPACITY, hline_label="Kennel Capacity", ylim_min=0
+    hline=KENNEL_CAPACITY, hline_label="Kennel Capacity", ylim=(0, 80)
 )
 
 plot_small_multiples(
     metric_key="avg_contaminated_per_day",
     ylabel="Number Of Contaminated Nodes",
     title="Number Of Contaminated Nodes Per Day",
-    x_is_rounds=False, ylim_min=0
+    x_is_rounds=False, ylim=(0, 150)
 )
 
 plot_small_multiples(
@@ -199,5 +210,5 @@ plot_small_multiples(
     ylabel="Number Of Staff Carrying CPV",
     title="Staff Infection Per Round",
     x_is_rounds=True,
-    hline=TOTAL_STAFF, hline_label="Total Staff", ylim_min=0
+    hline=TOTAL_STAFF, hline_label="Total Staff", ylim=(0, 20)
 )
