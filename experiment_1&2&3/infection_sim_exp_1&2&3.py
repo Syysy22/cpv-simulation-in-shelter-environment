@@ -16,11 +16,11 @@ MASTER_SAVE_PATH  = os.path.join(DATA_DIR, "cpv_env_staff_combo.pkl")  # single 
 #   Low:          P_DIRECT=0.0003, P_ENV=0.0001
 # Results from all runs are saved into a single file: cpv_env_staff_combo.pkl
 
-P_DIRECT = 0.0003       # set per regime
-P_ENV    = 0.0001       # set per regime
+P_DIRECT = 0.0005       # set per regime
+P_ENV    = 0.0003       # set per regime
 
 # run these pairs (env_days, staff_clear_rounds):
-COMBOS_TO_RUN = [(7,1), (7,2), (7,4)]
+COMBOS_TO_RUN = [(7,4), (3,4), (1,4)]
 
 # ========= Sim constants =========
 N_REPS = 50
