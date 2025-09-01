@@ -13,13 +13,13 @@ KENNEL_CAPACITY = 74
 TOTAL_STAFF     = 14
 USE_COMPACT_LABELS = True
 
-# pre-filter which combos to show, set these; None = show all found
-ENV_DAYS_FILTER = None        # {1,3,7} or None
-STAFF_R_FILTER  = None        # {1,2,4} or None
+# pre-filter which combos to show (None = show all present)
+ENV_DAYS_FILTER = None        # e.g., {1,3,7} or None
+STAFF_R_FILTER  = None        # e.g., {1,2,4} or None
 
 # Regime definitions by (P_DIRECT, P_ENV)
 REGIMES = {
-    "High":         (0.001, 0.0005),
+    "High":         (0.001,  0.0005),
     "Intermediate": (0.0005, 0.0003),
     "Low":          (0.0003, 0.0001),
 }
@@ -72,11 +72,11 @@ def combo_label(env_days, staff_rounds):
 # ---------- Load & organise ----------
 store = load_store(STORE_PATH)
 
-# Group entries by regime -> list of labels
+# group entries by regime
 labels_by_regime = defaultdict(list)
 for lbl, chunk in store.items():
     if not isinstance(chunk, dict) or "rates" not in chunk:
-        continue 
+        continue  # skip meta/non-dicts
     rn = regime_name_from_rates(rates_tuple(chunk))
     if rn:
         labels_by_regime[rn].append(lbl)
@@ -84,16 +84,13 @@ for lbl, chunk in store.items():
 if not labels_by_regime:
     raise ValueError("No entries matched High/Intermediate/Low rate pairs in cpv_env_staff_combo.pkl.")
 
-# restrict which combos to show
-def env_of(l): return get_env_days(store[l], l)
+def env_of(l):   return get_env_days(store[l], l)
 def staff_of(l): return get_staff_rounds(store[l], l)
 
-if ENV_DAYS_FILTER is not None:
-    ENV_DAYS_FILTER = set(map(int, ENV_DAYS_FILTER))
-if STAFF_R_FILTER is not None:
-    STAFF_R_FILTER = set(map(int, STAFF_R_FILTER))
+if ENV_DAYS_FILTER is not None: ENV_DAYS_FILTER = set(map(int, ENV_DAYS_FILTER))
+if STAFF_R_FILTER  is not None: STAFF_R_FILTER  = set(map(int, STAFF_R_FILTER))
 
-# Determine the set of combos present in each regime
+# Determine combos present per regime (honouring filters)
 combos_by_regime = {}
 for rn, lbls in labels_by_regime.items():
     combos = []
@@ -105,7 +102,7 @@ for rn, lbls in labels_by_regime.items():
         combos.append((e, s))
     combos_by_regime[rn] = sorted(set(combos))
 
-# Align horizons across selected labels (days/rounds lengths can differ)
+# Align horizons across selected labels
 selected_labels = []
 for rn, lbls in labels_by_regime.items():
     for l in lbls:
@@ -124,57 +121,64 @@ x_days   = np.arange(common_max_day+1)
 x_rounds = np.arange(common_n_rounds)
 
 # ---------- Plotting ----------
-def plot_metric(metric_key, title, ylabel, x_is_rounds=False, refline=None, alpha=1.0):
+def plot_metric(metric_key, title, ylabel, x_is_rounds=False,
+                refline=None, alpha=1.0, ylim=None):
     x = x_rounds if x_is_rounds else x_days
     L = common_n_rounds if x_is_rounds else (common_max_day+1)
 
     regimes_order = ["High", "Intermediate", "Low"]
     regimes_order = [r for r in regimes_order if r in labels_by_regime]
-    fig, axes = plt.subplots(1, len(regimes_order), figsize=(13, 4.8), sharex=True, sharey=True)
 
+    fig, axes = plt.subplots(1, len(regimes_order),
+                             figsize=(13, 4.8),
+                             sharex=True, sharey=True)
+    axes = np.atleast_1d(axes) 
     global_max = 0.0
     for ax, rn in zip(axes, regimes_order):
         # plot each combo present for this regime
         for combo in combos_by_regime.get(rn, []):
-            # find the label matching this combo (env_days, staff_rounds)
             candidates = [l for l in labels_by_regime[rn]
                           if env_of(l) == combo[0] and staff_of(l) == combo[1]]
             if not candidates:
                 continue
-            lbl = sorted(candidates)[0]  # if multiple, pick one deterministically
+            lbl = sorted(candidates)[0]  # deterministic pick
             y = np.asarray(store[lbl].get(metric_key, []))[:L]
             if y.size == 0:
                 continue
             ax.plot(
                 x, y,
                 color=COLOR_BY_COMBO.get(combo, "black"),
-                lw=1.2,
-                alpha=alpha,
+                lw=1.2, alpha=alpha,
                 label=combo_label(*combo),
             )
             if np.isfinite(y).any():
                 global_max = max(global_max, float(np.nanmax(y)))
 
         if refline is not None:
-            ax.axhline(refline[0], ls="--", color="grey", lw=1, label=(refline[1] if rn == regimes_order[0] else None))
+            ax.axhline(refline[0], ls="--", color="grey", lw=1,
+                       label=(refline[1] if rn == regimes_order[0] else None))
 
         ax.set_title(f"{rn} Transmission")
         ax.grid(True, alpha=0.3)
         ax.set_xlabel("Round" if x_is_rounds else "Day")
+        if ylim is not None:
+            ax.set_ylim(*ylim)
 
     axes[0].set_ylabel(ylabel)
-    ylim_top = max(np.ceil(global_max*1.05/5)*5, 1)
-    for ax in axes:
-        ax.set_ylim(0, ylim_top)
+    if ylim is None:
+        ylim_top = max(np.ceil(global_max*1.05/5)*5, 1)
+        for ax in axes:
+            ax.set_ylim(0, ylim_top)
 
-    # Build legend of only combos we actually plotted
     present = set()
     for rn in regimes_order:
         for combo in combos_by_regime.get(rn, []):
             present.add(combo)
+
     handles, labels = [], []
     for combo in sorted(present):
-        h, = axes[0].plot([], [], color=COLOR_BY_COMBO.get(combo, "black"), lw=1.6, label=combo_label(*combo))
+        h, = axes[0].plot([], [], color=COLOR_BY_COMBO.get(combo, "black"),
+                          lw=1.6, label=combo_label(*combo))
         handles.append(h); labels.append(combo_label(*combo))
     if refline is not None:
         ref, = axes[0].plot([], [], ls="--", color="grey", label=refline[1])
@@ -201,6 +205,8 @@ def plot_metric(metric_key, title, ylabel, x_is_rounds=False, refline=None, alph
     fig.tight_layout(rect=[0, 0.12, 1, 0.95])
     plt.show()
 
+# --------------------------- Plots --------------------------- #
+
 # 1) Infected dogs per day
 plot_metric(
     metric_key="avg_total_infected_per_day",
@@ -208,6 +214,7 @@ plot_metric(
     ylabel="Number Of Infected Dogs",
     x_is_rounds=False,
     refline=(KENNEL_CAPACITY, "Kennel Capacity"),
+    ylim=(0, 80),  
 )
 
 # 2) Contaminated nodes per day
@@ -216,6 +223,7 @@ plot_metric(
     title="Number Of Contaminated Nodes Per Day",
     ylabel="Number Of Contaminated Nodes",
     x_is_rounds=False,
+    ylim=(0, 150),  
 )
 
 # 3) Staff infection per round
@@ -226,4 +234,6 @@ plot_metric(
     x_is_rounds=True,
     refline=(TOTAL_STAFF, "Total Staff"),
     alpha=0.55,
+    ylim=(0, 20),   
 )
+
