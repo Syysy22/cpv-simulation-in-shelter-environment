@@ -1,4 +1,4 @@
-import pickle, random, math, numpy as np, matplotlib.pyplot as plt, time, matplotlib.animation as animation, networkx as nx
+import os, pickle, random, math, numpy as np, matplotlib.pyplot as plt, time, matplotlib.animation as animation, networkx as nx
 from collections import defaultdict
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
